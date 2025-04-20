@@ -8,7 +8,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Optional
-from moderation.email_utils import send_notification_email
+from email_utils import send_notification_email
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
