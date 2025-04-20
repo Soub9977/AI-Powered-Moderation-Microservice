@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from moderation import models, schemas
+import models, schemas
 from moderation.database import get_db, engine
 from moderation.moderation import ContentModerator
 from passlib.context import CryptContext
