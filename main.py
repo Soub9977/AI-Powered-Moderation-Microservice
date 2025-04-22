@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import models, schemas
 from database import get_db, engine
-from moderation import ContentModerator
+from ai_moderator import AIModerator
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -26,7 +26,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-moderator = ContentModerator()
+moderator = AIModerator()
 
 
 # Helper functions
@@ -44,7 +44,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "sub": data["username"]})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -146,7 +146,8 @@ async def create_comment(
     db.refresh(new_comment)
 
     # Check content using AI moderation
-    is_flagged, reason = await moderator.moderate_content(comment.content)
+    is_flagged, reason = moderator.moderate(comment.content)
+
 
     if is_flagged:
         new_comment.status = "flagged"

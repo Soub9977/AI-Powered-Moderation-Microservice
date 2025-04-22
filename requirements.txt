@@ -13,3 +13,7 @@ black #for linted code
 #for testing
 pytest
 httpx
+transformers>=4.30.0
+torch>=2.0.0
+sentencepiece
+protobuf
