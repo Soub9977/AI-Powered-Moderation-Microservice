@@ -1,184 +1,119 @@
-AI-Powered Content Moderation API
+Apologies for missing the Docker details! Here's the updated **README** that includes Docker setup, but still keeps everything concise:
 
-A FastAPI-based microservice that provides AI-powered content moderation for user-generated content. This service helps maintain content quality by automatically detecting and flagging inappropriate content using AI/ML techniques.
+---
 
-Features
+# 🚀 AI-Powered Content Moderation
 
-- AI-Powered Content Moderation: Automatically detect and flag inappropriate content
-- User Authentication: Secure JWT-based authentication system
-- Comment Management: Create, retrieve, and moderate comments
-- Email Notifications: Automatic notifications for flagged content
-- Analytics: Track moderation statistics and metrics
-- API Documentation: Interactive API documentation with Swagger UI
+An AI-powered web service for content moderation, detecting toxic content using **FastAPI** and **PostgreSQL**.
 
-Quick Start
+🔗 **Live Demo**: [AI-Powered Content Moderation](https://ai-powered-content-moderation-oz7j.onrender.com)
 
-Prerequisites:
-- Python 3.11+
-- Docker and Docker Compose
-- PostgreSQL
+---
 
-Installation:
+## 🛠️ Tech Stack
 
-1. Clone the repository:
-git clone (https://github.com/Soub9977/AI-Powered-Moderation-Microservice)
-cd ai-powered-moderation
+- **Backend**: FastAPI
+- **Database**: PostgreSQL
+- **Deployment**: Render (for live demo)
+- **Containerization**: Docker (optional)
 
-2. Create a .env file:
-DATABASE_URL=postgresql://user:password@db:5432/moderation
-SECRET_KEY=your-secret-key
-SMTP_HOST=your-smtp-host
-SMTP_PORT=587
-SMTP_USERNAME=your-email
-SMTP_PASSWORD=your-password
+---
 
-3. Build and run with Docker Compose:
-docker-compose up --build
+## 📋 Installation & Setup
 
-The API will be available at http://localhost:8000
+### Step 1: Clone the Repository
 
-API Documentation
+Clone the repository to your local system:
 
-Once the service is running, you can access:
-- Swagger UI documentation: http://localhost:8000/docs
-- ReDoc documentation: http://localhost:8000/redoc
+```bash
+git clone <your-repository-url>
+cd ai-powered-content-moderation
+```
 
-Key Endpoints:
-- POST /register: Register a new user
-- POST /token: Get access token
-- POST /comments/: Create a new comment
-- GET /comments/: Get all comments
-- GET /comments/flagged: Get flagged comments
-- GET /comments/approved: Get approved comments
-- GET /analytics/comments: Get comment moderation analytics
+### Step 2: Set Up PostgreSQL
 
-Development Setup
+1. **Install PostgreSQL**:
+   - Install PostgreSQL on your local machine or use a PostgreSQL cloud service (like Render, Heroku, etc.).
+   - Create a new database (e.g., `content_moderation`) and a user with necessary permissions.
 
-1. Create a virtual environment:
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+2. **Create a `.env` file**:
+   - In the project folder, create a `.env` file to store environment variables (e.g., PostgreSQL credentials).
+   - Add your database connection details (host, port, username, password, and database name).
 
-2. Install dependencies:
+### Step 3: Install Dependencies
+
+In your project directory, install the required Python dependencies:
+
+```bash
 pip install -r requirements.txt
+```
 
-3. Run the development server:
-uvicorn moderation.main:app --reload
+### Step 4: Run the Application Locally
 
-Project Structure
+Run the FastAPI application:
 
-moderation/
-├── __init__.py
-├── main.py              # FastAPI application and routes
-├── content_moderator.py # AI moderation logic
-├── database.py         # Database configuration
-├── models.py           # SQLAlchemy models
-├── schemas.py          # Pydantic schemas
-└── email_utils.py      # Email notification utilities
+```bash
+uvicorn main:app --reload
+```
 
-Security Features
+- The app will be running on `http://localhost:8000`.
 
-- JWT-based authentication
-- Password hashing with bcrypt
-- Rate limiting
-- Security headers
-- Input validation
-- Error handling
+---
 
-Analytics and Monitoring
+## 🐳 Docker Setup (Optional)
 
-The service provides basic analytics through the /analytics/comments endpoint:
-- Total comments processed
-- Number of flagged comments
-- Number of approved comments
-- Flagging rate percentage
+If you prefer using Docker to containerize the app, follow these steps:
 
-Docker Support
+1. **Build the Docker Image**:
 
-The project includes Docker support for easy deployment:
-- Multi-stage builds for optimal image size
-- Docker Compose for orchestration
-- PostgreSQL database container
-- Environment variable configuration
+```bash
+docker build -t ai-content-moderation .
+```
 
-Testing
+2. **Run the Docker Container**:
 
-Run the test suite:
-pytest
+```bash
+docker run -d -p 8000:8000 ai-content-moderation
+```
 
-Contributing
+- The app will be accessible at `http://localhost:8000` inside the Docker container.
 
-1. Fork the repository
-2. Create a feature branch (git checkout -b feature/AmazingFeature)
-3. Commit your changes (git commit -m 'Add some AmazingFeature')
-4. Push to the branch (git push origin feature/AmazingFeature)
-5. Open a Pull Request
+3. **Using Docker Compose** (Optional):
 
+You can also use Docker Compose to manage both the FastAPI app and PostgreSQL container.
 
+```bash
+docker-compose up --build
+```
 
+This will set up both the app and the database in separate containers.
 
-Acknowledgments
+---
 
-- FastAPI framework
-- SQLAlchemy
-- Python-Jose
-- Passlib
-- Other open-source contributors
+## 🚀 Deployment on Render
 
+1. **Push your code to GitHub**: Ensure your project is on a GitHub repository.
+2. **Create a Web Service on Render**:
+   - Sign up/login to [Render](https://render.com).
+   - Create a new Web Service and link your GitHub repository.
+3. **Set up Environment Variables**:
+   - Add the necessary environment variables (e.g., PostgreSQL connection details) in the Render dashboard.
+4. **Deploy**: After linking, Render will automatically build and deploy your application.
 
+---
 
+## 📡 API Endpoints
 
-Future Improvements
+- `POST /predict`: Submit content to analyze for toxic content.
+- `GET /health`: Check if the server is running.
 
-- Enhanced AI moderation algorithms
-- Real-time moderation websocket support
-- Multi-language support
-- Content categorization
-- User reputation system
-- Batch processing capabilities
-- Advanced analytics dashboard
+---
 
-Requirements
+## 👤 Author
 
-Create a requirements.txt file with these dependencies:
-fastapi
-uvicorn
-sqlalchemy
-passlib
-python-jose[cryptography]
-python-multipart
-psycopg2-binary
-bcrypt
-aiosmtplib
-python-dotenv
-prometheus-client
-pytest
-httpx
+Built with ❤️ by **Soubhagya C. Kotian**  
+🔗 [LinkedIn Profile](https://www.linkedin.com/in/soubhagya-kotian/)
 
-Environment Variables
+---
 
-Make sure to set up these environment variables:
-- DATABASE_URL
-- SECRET_KEY
-- SMTP_HOST
-- SMTP_PORT
-- SMTP_USERNAME
-- SMTP_PASSWORD
-
-API Usage Examples
-
-1. Register a new user:
-curl -X POST "http://localhost:8000/register" \
--H "Content-Type: application/json" \
--d '{"email": "test@example.com", "username": "testuser", "password": "password123"}'
-
-2. Get access token:
-curl -X POST "http://localhost:8000/token" \
--H "Content-Type: application/form-data" \
--d "username=testuser&password=password123"
-
-3. Create a comment:
-curl -X POST "http://localhost:8000/comments/" \
--H "Authorization: Bearer <your_token>" \
--H "Content-Type: application/json" \
--d '{"content": "This is a test comment"}'
-
+This version now includes steps for **Docker setup** and **running the app inside Docker containers**, as well as the simple local setup. Let me know if this works!
