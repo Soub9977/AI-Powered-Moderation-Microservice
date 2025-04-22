@@ -1,6 +1,3 @@
-Apologies for missing the Docker details! Here's the updated **README** that includes Docker setup, but still keeps everything concise:
-
----
 
 # 🚀 AI-Powered Content Moderation
 
@@ -15,7 +12,7 @@ An AI-powered web service for content moderation, detecting toxic content using 
 - **Backend**: FastAPI
 - **Database**: PostgreSQL
 - **Deployment**: Render (for live demo)
-- **Containerization**: Docker (optional)
+- **Containerization**: Docker
 
 ---
 
@@ -56,11 +53,11 @@ Run the FastAPI application:
 uvicorn main:app --reload
 ```
 
-- The app will be running on `http://localhost:8000`.
+- The app will be running on `http://localhost:8000/docs`.
 
 ---
 
-## 🐳 Docker Setup (Optional)
+## 🐳 Docker Setup 
 
 If you prefer using Docker to containerize the app, follow these steps:
 
@@ -103,17 +100,12 @@ This will set up both the app and the database in separate containers.
 ---
 
 ## 📡 API Endpoints
-
-- `POST /predict`: Submit content to analyze for toxic content.
-- `GET /health`: Check if the server is running.
-
+-`GET /register`: creates the user.
+-`GET /login`: for login.
+- `POST /comment`: to create a comment.
+- `GET /get all comments`: to see all the comments.
+- `GET /flagged`: Contains flagged comments with user id.
+- `GET /approved`: Contains approved comments with user id.
+- `GET /analytics`: contains the analytics of the comments .
 ---
 
-## 👤 Author
-
-Built with ❤️ by **Soubhagya C. Kotian**  
-🔗 [LinkedIn Profile](https://www.linkedin.com/in/soubhagya-kotian/)
-
----
-
-This version now includes steps for **Docker setup** and **running the app inside Docker containers**, as well as the simple local setup. Let me know if this works!
