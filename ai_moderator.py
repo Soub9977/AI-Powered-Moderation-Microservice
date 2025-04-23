@@ -1,95 +1,115 @@
 from transformers import pipeline
 import re
 import logging
-from typing import Tuple, Dict, List
-from concurrent.futures import ThreadPoolExecutor
+from typing import Tuple, Dict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AIModerator:
     def __init__(self):
-        # Load multiple models for different aspects of moderation
-        self.toxic_classifier = pipeline(
-            "text-classification",
-            model="martin-ha/toxic-comment-model",
-            device=-1  # CPU
-        )
+        self.model_name = "martin-ha/toxic-comment-model"
+        self.classifier = pipeline("text-classification", model=self.model_name)
         
-        self.hate_speech_classifier = pipeline(
-            "text-classification",
-            model="facebook/roberta-hate-speech-dynabench-r4-target",
-            device=-1
-        )
-
+        # Basic profanity words
         self.profanity_words = {
-            "fuck", "shit", "ass", "bitch", "dick", "pussy", "cock",
-            "bastard", "damn", "cunt", "hell"
+            "fuck", "shit", "ass", "bitch", "dick", "pussy", "cock", "bastard",
+            "damn", "cunt", "hell", "motherfucker", "asshole", "fucker", "bullshit",
+            "slut", "whore", "jackass", "douchebag", "prick", "crap", "jerk"
         }
-        
-        # Initialize ThreadPoolExecutor for parallel processing
-        self.executor = ThreadPoolExecutor(max_workers=2)
-        logger.info("Initialized AI Moderation models successfully")
+
+        # Self-harm and suicidal phrases
+        self.self_harm_phrases = [
+             "want to die", "don't want to live", "dont want to live", "kill myself",
+             "end my life", "end it all", "no reason to live", "better off dead",
+               "rather be dead", "hate my life", "can't take it anymore", "cant take it anymore",
+               "want to end", "suicide", "hurt myself", "harm myself", "take my own life",
+               "feel like dying", "i give up", "lost the will to live", "want to disappear",
+               "nobody cares about me", "i feel empty", "self-harm", "i'm done", "i quit life",
+               "i want to vanish", "there’s no hope", "my life is meaningless"
+        ]
+
+        # Dangerous actions
+        self.dangerous_actions = [
+            "fall", "jump", "leap", "throw", "push", "drop",
+            "climb", "hang"
+        ]
+
+        # Dangerous locations
+        self.dangerous_locations = [
+            "building", "roof", "bridge", "window", "balcony", "cliff", "height",
+            "tower", "terrace", "top", "parking garage", "stairs", "ledge", "mountain",
+            "construction site", "highway", "railway", "train track", "skyscraper"
+        ]
+
+        # Safe phrases that should never be flagged
+        self.safe_phrases = [
+            "good", "nice", "great", "awesome", "wonderful",
+            "thank", "thanks", "please", "welcome", "happy",
+            "love", "excellent", "fantastic", "amazing", "helpful",
+            "have a nice day", "good product", "well done"
+        ]
+
+        logger.info(f"Loaded Hugging Face model: {self.model_name}")
 
     def contains_profanity(self, text: str) -> bool:
         text_lower = text.lower()
         words = re.findall(r"\b\w+\b", text_lower)
         return any(word in self.profanity_words for word in words)
 
-    def analyze_toxicity(self, text: str) -> Dict:
-        result = self.toxic_classifier(text)[0]
-        return {
-            "is_toxic": result["label"] == "toxic",
-            "toxicity_score": result["score"],
-            "type": "toxicity"
-        }
+    def contains_self_harm_content(self, text: str) -> bool:
+        text_lower = text.lower()
+        return any(phrase in text_lower for phrase in self.self_harm_phrases)
+    
+    def contains_dangerous_content(self, text: str) -> bool:
+        text_lower = text.lower()
+        words = text_lower.split()
+        # Join with spaces for full phrase detection
+        full_text = " ".join(words)
+        for action in self.dangerous_actions:
+            for location in self.dangerous_locations:
+                if re.search(rf"\b{action}\b.*\b{location}\b", full_text):
+                    return True
+        
+        return False
 
-    def analyze_hate_speech(self, text: str) -> Dict:
-        result = self.hate_speech_classifier(text)[0]
-        return {
-            "is_hate_speech": result["label"] == "hate",
-            "hate_score": result["score"],
-            "type": "hate_speech"
-        }
+
+    def is_safe_content(self, text: str) -> bool:
+        text_lower = text.lower()
+        # Don't mark as safe if it contains dangerous content
+        if self.contains_dangerous_content(text_lower):
+            return False
+        return any(phrase in text_lower for phrase in self.safe_phrases)
 
     def moderate(self, text: str) -> Tuple[bool, str]:
-        logger.info(f"Moderating content: {text[:100]}...")
+        logger.info(f"Moderating content: {text}")
 
         try:
-            # Quick check for profanity
+            # Check for dangerous physical actions
+            if self.contains_dangerous_content(text):
+                return True, "Contains potentially dangerous or harmful actions"
+
+            # First check if it's explicitly safe content
+            if self.is_safe_content(text):
+                return False, "Content is safe"
+
+            # Check for profanity
             if self.contains_profanity(text):
-                logger.warning("Profanity found in initial check")
-                return True, "Explicit profanity detected"
+                return True, "Contains explicit profanity"
 
-            # Parallel processing of different checks
-            futures = [
-                self.executor.submit(self.analyze_toxicity, text),
-                self.executor.submit(self.analyze_hate_speech, text)
-            ]
-            
-            results = [future.result() for future in futures]
-            
-            # Analyze results
-            is_flagged = False
-            reasons = []
+            # Check for self-harm content
+            if self.contains_self_harm_content(text):
+                return True, "Contains concerning self-harm or suicidal content"
 
-            for result in results:
-                if result["type"] == "toxicity" and result["is_toxic"] and result["toxicity_score"] > 0.6:
-                    is_flagged = True
-                    reasons.append(f"Toxic content detected (score={result['toxicity_score']:.2f})")
-                
-                elif result["type"] == "hate_speech" and result["is_hate_speech"] and result["hate_score"] > 0.6:
-                    is_flagged = True
-                    reasons.append(f"Hate speech detected (score={result['hate_score']:.2f})")
+            # AI model check for toxic content
+            result = self.classifier(text)[0]
+            is_toxic = result["label"] == "toxic" and result["score"] > 0.8
 
-            if is_flagged:
-                return True, " | ".join(reasons)
+            if is_toxic:
+                return True, f"Toxic content detected (score={result['score']:.2f})"
 
             return False, "Content is safe"
 
         except Exception as e:
             logger.error(f"Moderation error: {str(e)}")
-            return True, f"Error during moderation: {str(e)}"
-
-    def __del__(self):
-        self.executor.shutdown(wait=True)
+            return False, "Content is safe"  # Default to safe on error

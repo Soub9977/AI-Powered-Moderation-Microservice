@@ -9,11 +9,12 @@ from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Optional
 from email_utils import send_notification_email
+import re
 
-# Create tables
+
 models.Base.metadata.create_all(bind=engine)
 
-# Initialize FastAPI app
+
 app = FastAPI(
     title="AI-Powered Content Moderation API",
     description="A microservice for moderating user-generated content using AI",
@@ -29,7 +30,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 moderator = AIModerator()
 
 
-# Helper functions
+
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -70,7 +71,7 @@ async def get_current_user(
     return user
 
 
-# Routes
+
 @app.post("/register", response_model=schemas.User, tags=["Authentication"])
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = (
@@ -115,59 +116,74 @@ async def login(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+
+
+# Define profanity pattern
+PROFANITY_PATTERN = r"\b(fuck|shit|damn)\b"
+
 @app.post("/comments/", response_model=schemas.Comment, tags=["Comments"])
 async def create_comment(
     comment: schemas.CommentCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    # Initial profanity check
-    if any(word in comment.content.lower() for word in ["fuck", "shit", "damn"]):
-        try:
-            # Send email notification
-            await send_notification_email(
-                current_user.email,
-                comment.content,
-                "Your comment couldn't be posted as it contains inappropriate language",
-            )
-        except Exception as e:
-            print(f"Failed to send email: {str(e)}")
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Comment contains inappropriate language",
-        )
-
+    # Step 1: Create comment with "pending" status
     new_comment = models.Comment(
-        content=comment.content, user_id=current_user.id, status="pending"
+        content=comment.content, 
+        user_id=current_user.id, 
+        status="pending"
     )
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
 
-    # Check content using AI moderation
-    is_flagged, reason = moderator.moderate(comment.content)
-
-
-    if is_flagged:
+    # Step 2: Check for profanity using regex
+    if re.search(PROFANITY_PATTERN, comment.content.lower()):
         new_comment.status = "flagged"
         flagged_comment = models.FlaggedComment(
-            comment_id=new_comment.id, user_id=current_user.id, reason=reason
+            comment_id=new_comment.id, 
+            user_id=current_user.id, 
+            reason="Contains explicit profanity"
         )
         db.add(flagged_comment)
         db.commit()
 
         try:
-            # Send email notification
-            await send_notification_email(current_user.email, comment.content, reason)
+            await send_notification_email(
+                current_user.email,
+                comment.content,
+                "Your comment contains inappropriate language"
+            )
         except Exception as e:
             print(f"Failed to send email: {str(e)}")
 
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Comment has been flagged for moderation. Reason: {reason}",
-        )
+        return new_comment
 
+    # Step 3: Use AI-based moderation
+    is_flagged, reason = moderator.moderate(comment.content)
+
+    if is_flagged:
+        new_comment.status = "flagged"
+        flagged_comment = models.FlaggedComment(
+            comment_id=new_comment.id,
+            user_id=current_user.id,
+            reason=reason
+        )
+        db.add(flagged_comment)
+        db.commit()
+
+        try:
+            await send_notification_email(
+                current_user.email,
+                comment.content,
+                reason
+            )
+        except Exception as e:
+            print(f"Failed to send email: {str(e)}")
+
+        return new_comment
+
+    # Step 4: Approve comment if it passes both checks
     new_comment.status = "approved"
     db.commit()
 
